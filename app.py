@@ -50,7 +50,7 @@ def send_whatsapp_message(to_number, message):
         print(f"Error sending WhatsApp message: {str(e)}")
         return None
     
-@app.route('/')
+@app.route('/health')
 def healthcheck():
     return jsonify({
         "status": "healthy",
@@ -122,10 +122,6 @@ def cleanup_images(*paths):
         except:
             pass
 
-@app.route("/", methods=['GET'])
-def health_check():
-    return jsonify({"status": "healthy"}), 200
-
 if __name__ == "__main__":
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
