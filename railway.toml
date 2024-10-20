@@ -1,10 +1,6 @@
-[
-    deploy
-]
+[deploy]
 startCommand = "gunicorn app:app"
 healthcheckPath = "/"
 
-[
-    build
-]
+[build]
 builder = "nixpacks"
