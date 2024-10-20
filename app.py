@@ -52,7 +52,10 @@ def send_whatsapp_message(to_number, message):
     
 @app.route('/')
 def healthcheck():
-    return 'OK', 200
+    return jsonify({
+        "status": "healthy",
+        "message": "Virtual Try-On Bot is running!"
+    })
 
 @app.route("/webhook", methods=['POST'])
 def webhook():
