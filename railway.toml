@@ -1,6 +1,11 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r requirements.txt"
+
 [deploy]
 startCommand = "gunicorn app:app"
 healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
 
-[build]
-builder = "nixpacks"
+[env]
+PYTHON_VERSION = "3.9"
