@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, url_for
 import os
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
@@ -49,7 +49,7 @@ def send_whatsapp_message(to_number, message):
     except Exception as e:
         print(f"Error sending WhatsApp message: {str(e)}")
         return None
-    
+
 @app.route('/health')
 def healthcheck():
     return jsonify({
@@ -59,55 +59,59 @@ def healthcheck():
 
 @app.route("/webhook", methods=['POST'])
 def webhook():
-    # Verify request is from Twilio
-    # Get incoming WhatsApp message details
-    incoming_msg = request.values.get('Body', '')
-    sender = request.values.get('From', '')
-    num_media = int(request.values.get('NumMedia', 0))
-    
-    resp = MessagingResponse()
-    
-    if num_media > 0:
-        # Handle image upload
-        media_url = request.values.get('MediaUrl0', '')
-        if sender not in user_states:
-            user_states[sender] = {'state': 'awaiting_person'}
-            
-        if user_states[sender]['state'] == 'awaiting_person':
-            # Save person image
-            user_states[sender]['person_image'] = download_and_save_image(media_url)
-            user_states[sender]['state'] = 'awaiting_garment'
-            resp.message("Great! Now send me the garment image you'd like to try on.")
-            
-        elif user_states[sender]['state'] == 'awaiting_garment':
-            # Save garment image and process
-            garment_image = download_and_save_image(media_url)
-            try:
-                result_path = process_try_on(
-                    user_states[sender]['person_image'],
-                    garment_image
-                )
-                if result_path:
-                    # Send result back to user
-                    resp.message().media(result_path)
-                else:
-                    resp.message("Sorry, there was an error processing your images. Please try again.")
-                # Clean up
-                cleanup_images(user_states[sender]['person_image'], garment_image)
-                user_states[sender]['state'] = 'awaiting_person'
-            except Exception as e:
-                print(f"Error in webhook: {str(e)}")
-                resp.message("Sorry, something went wrong. Please try again.")
+    try:
+        # Get incoming WhatsApp message details
+        incoming_msg = request.values.get('Body', '')
+        sender = request.values.get('From', '')
+        num_media = int(request.values.get('NumMedia', 0))
+        
+        resp = MessagingResponse()
+        
+        if num_media > 0:
+            # Handle image upload
+            media_url = request.values.get('MediaUrl0', '')
+            if sender not in user_states:
+                user_states[sender] = {'state': 'awaiting_person'}
                 
-    else:
-        # Handle text messages
-        if incoming_msg.lower() == 'start':
-            resp.message("Welcome to Virtual Try-On! Please send me a full-body photo of yourself.")
-            user_states[sender] = {'state': 'awaiting_person'}
+            if user_states[sender]['state'] == 'awaiting_person':
+                # Save person image
+                user_states[sender]['person_image'] = download_and_save_image(media_url)
+                user_states[sender]['state'] = 'awaiting_garment'
+                msg = resp.message("Great! Now send me the garment image you'd like to try on.")
+                
+            elif user_states[sender]['state'] == 'awaiting_garment':
+                # Save garment image and process
+                garment_image = download_and_save_image(media_url)
+                try:
+                    result_path = process_try_on(
+                        user_states[sender]['person_image'],
+                        garment_image
+                    )
+                    if result_path:
+                        # Send result back to user
+                        msg = resp.message()
+                        msg.media(result_path)
+                    else:
+                        msg = resp.message("Sorry, there was an error processing your images. Please try again.")
+                    # Clean up
+                    cleanup_images(user_states[sender]['person_image'], garment_image)
+                    user_states[sender]['state'] = 'awaiting_person'
+                except Exception as e:
+                    print(f"Error processing images: {str(e)}")
+                    msg = resp.message("Sorry, something went wrong. Please try again.")
+                    
         else:
-            resp.message("Please send an image or type 'start' to begin.")
-    
-    return str(resp)
+            # Handle text messages
+            if incoming_msg.lower() == 'start':
+                msg = resp.message("Welcome to Virtual Try-On! Please send me a full-body photo of yourself.")
+                user_states[sender] = {'state': 'awaiting_person'}
+            else:
+                msg = resp.message("Please send an image or type 'start' to begin.")
+        
+        return str(resp)
+    except Exception as e:
+        print(f"Webhook error: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 def download_and_save_image(url):
     response = requests.get(url)
