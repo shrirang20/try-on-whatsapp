@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify
 import os
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
-from PIL import Image
 import requests
 import gradio_client
 import tempfile
@@ -27,11 +26,9 @@ def process_try_on(person_image_path, garment_image_path):
     try:
         client = gradio_client.Client("Kwai-Kolors/Kolors-Virtual-Try-On")
         result = client.predict(
-            person_image_path,
-            garment_image_path,
-            0,  # seed
-            True,  # random seed
-            api_name="/predict"
+            person_image_path,	
+            garment_image_path,	
+            api_name="/run"  # Changed from "/predict" to "/run"
         )
         return result
     except Exception as e:
@@ -89,7 +86,7 @@ def webhook():
                     )
                     if result_path:
                         # Send result back to user
-                        msg = resp.message()
+                        msg = resp.message("Here's your virtual try-on result!")
                         msg.media(result_path)
                     else:
                         msg = resp.message("Sorry, there was an error processing your images. Please try again.")
