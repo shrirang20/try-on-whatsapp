@@ -22,7 +22,7 @@ twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 app = Flask(__name__)
 
-# Store user states (you might want to use a proper database in production)
+# Store user states
 user_states = {}
 
 def process_try_on(person_image_path, garment_image_path):
